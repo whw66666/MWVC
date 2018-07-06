@@ -1,43 +1,46 @@
-#include<stdio.h>
+ï»¿#include<stdio.h>
 #include<time.h>
 #include<string.h>
 #include<stdlib.h>
+#include<malloc.h>
 
 #define N 100
 
 #define EDGE 100
 
+typedef struct Vnode
+{
+	int v;
+	struct Vnode * next;
+}   V;
 
-int w[N];             //¶¥µãÈ¨ÖØ
-int e[N][N] = {{0}};          //ÁÚ½Ó±í
-int score[N];         //¶¥µã·ÖÊı
-int c[N] = {1};             //½â£¬1±íÊ¾ÔÚ½âÖĞ£¬0±íÊ¾²»ÔÚ½âÖĞ
-int tabu[N];          //½û¼É±í
-int UB;               //½âµÄ×ÜÈ¨ÖØ
-int wconfig[N] = {1};       //¸ñ¾Ö
-long long iter;			//µü´ú´ÎÊı
-int age[N];			//ÄêÁä
+
+
+int w[N];             //é¡¶ç‚¹æƒé‡
+int e[N][N] = {{0}};          //é‚»æ¥è¡¨
+int score[N];         //é¡¶ç‚¹åˆ†æ•°
+
+V * Chead;
+V * Cend;
+
+V * nChead;
+V * nCend;
+
+int Cnum;
+int nCnum = N;
+
+
+int tabu[N];          //ç¦å¿Œè¡¨
+int UB;               //è§£çš„æ€»æƒé‡
+int wconfig[N] = {1};       //æ ¼å±€
+long long iter;			//è¿­ä»£æ¬¡æ•°
+int age[N];			//å¹´é¾„
 int cbest[N];
 int UBbest;
 int edgen = EDGE;
-void newscore(int x);
-int sumwc();
-int judge();
-void edgeadd();
-int removev(void);
-int removetabu();
-int add();
-int getline(char *str, FILE *fp, int n);
-int init();
-void wshow();
-void eshow();
-void cshow();
-void scoreshow();
-void WCC_Rule2(int vi);
-void WCC_Rule3(int vi);
-void WCC_Rule4(int vi,int ui);
-void greedy();
-void newscore(int x)//ÒÆ¶¯ÒÔºóµÄ
+
+
+void updatescore(int x)//ç§»åŠ¨ä»¥åçš„
 {
 	int i;
 	score[x]=score[x]*(-1);
@@ -56,58 +59,50 @@ void newscore(int x)//ÒÆ¶¯ÒÔºóµÄ
 		}
 	}
 }
-int sumwc()
+
+
+
+
+int addv(int v)
 {
-	int i;
-	int sum=0;
-	for(i=0;i<N;i++)
-	{
-		if(c[i]==1)
-		{
-			sum+=w[i];
-		}
+	V * pnew;
+	V * p;
+	V * ppre;
+
+	
+	if ( (V =  malloc(sizeof(V))) == NULL) {
+		printf("Can't malloc in addv");
+		return 0;
 	}
-	return sum;
-}
-int judge()
-{
-	int i,j;
-	for(i=0;i<N;i++)
+	
+	pnew->v = v;
+	pnew->next = NULL;
+	if (Chead == Cend)
 	{
-		for(j=0;j<N;j++)
-		{
-		    if (e[i][j] > 0)
-            {
-                if ((c[i]+c[j])==0)
-                {
-                    //printf("\nÓĞ²»±»°üº¬µÄ±ßi=%dj=%d\n",i,j);
-                        return 0;
-                }
-
-            }
-
-
-		}
+		Chead->next = pnew;
+		Cend = pnew;
 	}
-	return 1;
-}
-void edgeadd()
-{
-	int i,j;
-	for(i=0;i<N;i++)
+	else
 	{
-		for(j=0;j<N;j++)
+		Cend->next = pnew;
+		Cend = pnew;
+	}
+
+	ppre = nChead;
+	p = ppre->next;
+	while (p->next->next != NULL)
+	{
+		if (p->v == v)
 		{
-			if(e[i][j]!=0)
+			if (p == nCend)
 			{
-				if(c[i]+c[j]==0)
-				{
-					e[i][j]++;
-					WCC_Rule4(i,j);
-				}
+
 			}
+			ppre->next = p->next;
+
 		}
 	}
+
 }
 
 void Eadd(int v)
@@ -134,6 +129,196 @@ void Eminus(int v)
 }
 
 
+
+
+
+
+
+int init()
+{
+	FILE *fp;
+	int i, j, n = 0, k = 0;
+	char str[5000] = {'0'};
+	char tmp[10];
+
+	for (i = 0; i < N; i++)
+	{
+		wconfig[i] = 1;
+		nC[i] = i;
+		nCpos[i] = i;
+
+	}
+
+	fp = fopen("E:\\CPP\\dingdian\\MVVC\\vc_100_100_01.txt", "r");
+
+	if (fp == NULL)
+	{
+		printf("The file can not be opened in init().\n");
+		return 0;
+	}
+
+	for (n = 0; !feof(fp); n++)
+	{
+		if (!getline(str, fp, 5000))
+		{
+			printf("The array str is too small at init().\n");
+			return 0;
+		}
+
+		if (n == 1)
+		{
+			for (i = 0, k = 0; str[i] != '\n'; k++)
+			{
+				for (j = 0; j < 5 && str[i] != '\n';)
+					tmp[j++] = str[i++];
+				tmp[j] = '\n';
+				w[k] = atoi(tmp);
+			}
+		}
+
+		if (n > 1)
+		{
+			for (i = 1, k = 0; (str[i] != '\n') && (k < N); i++, k++)
+			{
+
+				for (j = 0; (str[i] != ' ') && (str[i] != '\n'); i++)
+				{
+					tmp[j++] = str[i];
+				}
+				tmp[j] = '\n';
+				e[n - 2][k] = atoi(tmp);
+
+				if (e[n - 2][k] == 1)
+					score[n - 2]++;
+			}
+		}
+	}
+	greedy();
+	for (i = 0; i < N; i++)
+	{
+		printf(" %d", c[i]);
+	}
+	return 1;
+}
+
+void greedy()
+{
+	float tmp[N];
+	int i;
+	int k;
+	int flag;
+	float max;
+
+	for (i = 0; i < N; i++)
+		tmp[i] = score[i] * 1.0 / w[i];
+
+	for (k = 0; k < N; k++)
+	{
+
+		for (i = 0, max = tmp[i], flag = 0; i < N; i++)
+		{
+
+			if (tmp[i] > max)
+			{
+				max = tmp[i];
+				flag = i;
+			}
+		}
+
+		tmp[flag] = 0;
+		c[flag] = 1;
+		if (judge() == 1)
+			break;
+	}
+}
+
+void wshow()
+{
+	int i;
+	printf("æƒé‡ï¼š\n");
+	for (i = 0; i < N; i++)
+	{
+		printf(" %d", w[i]);
+	}
+	printf("\n");
+	printf("\n");
+}
+
+void cshow()
+{
+	int i;
+	printf("ç»“æœï¼š\n");
+	for (i = 0; i < N; i++)
+	{
+		printf(" %d", c[i]);
+	}
+	printf("\n");
+	printf("\n");
+}
+
+void eshow()
+{
+	int i, j;
+	printf("åŠ¨æ€è¾¹ï¼š\n");
+	for (i = 0; i < N; i++)
+	{
+		for (j = 0; j < N; j++)
+			printf(" %d", e[i][j]);
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void scoreshow()
+{
+	int i;
+	printf("åˆ†æ•°ï¼š\n");
+	for (i = 0; i < N; i++)
+	{
+		printf(" %d", score[i]);
+	}
+	printf("\n");
+	printf("\n");
+}
+
+void wconfigshow()
+{
+	int i;
+	printf("æ ¼å±€ï¼š\n");
+	for (i = 0; i < N; i++)
+	{
+		printf(" %d", wconfig[i]);
+	}
+	printf("\n");
+	printf("\n");
+}
+
+void WCC_Rule2(int vi)
+{
+	int i;
+	wconfig[vi] = 0;
+	for (i = 0; i < N; i++)
+	{
+		if (e[vi][i] > 0)
+			wconfig[i] = 1;
+	}
+}
+
+void WCC_Rule3(int vi)
+{
+	int i;
+	for (i = 0; i < N; i++)
+	{
+		if (e[vi][i] > 0)
+			wconfig[i] = 1;
+	}
+}
+
+void WCC_Rule4(int vi, int ui)
+{
+	wconfig[vi] = 1;
+	wconfig[ui] = 1;
+}
 
 void main()
 {
@@ -162,7 +347,7 @@ void main()
 	}
 
 	start = clock();
-	while(iter<10000000)//²»ÖªµÀÊ²Ã´¹íÌõ¼ş)
+	while(iter<10000000)//ä¸çŸ¥é“ä»€ä¹ˆé¬¼æ¡ä»¶)
 	{
 		while(edgen == EDGE)
 		{
@@ -179,9 +364,9 @@ void main()
 				step++;
 
 
-				/*printf("µÚ%d´Î\n",step);
+				/*printf("ç¬¬%dæ¬¡\n",step);
 				printf("time = %ld\n",end - start);
-				printf("µü´ú´ÎÊı%d\n",iter);*/
+				printf("è¿­ä»£æ¬¡æ•°%d\n",iter);*/
                 h = end - start;
                 printf("%d,",h);
                 printf("%d,",iter);
@@ -192,7 +377,7 @@ void main()
 			}
 			v=removev();
 			//printf("iter = %ld\n",iter);
-			//printf("\n¸Ä±äµÄÊÇµÚ%d¸ö¶¥µã\n",v);
+			//printf("\næ”¹å˜çš„æ˜¯ç¬¬%dä¸ªé¡¶ç‚¹\n",v);
 			c[v]=0;
 			Eminus(v);
 			newscore(v);
@@ -211,7 +396,7 @@ void main()
 		newscore(v);
 		c[v]=0;
 		Eminus(v);
-		//printf("\n¼õÈ¥µÄÊÇµÚ%d¸ö¶¥µã\n",v);
+		//printf("\nå‡å»çš„æ˜¯ç¬¬%dä¸ªé¡¶ç‚¹\n",v);
 		/*eshow();
 			cshow();
 			scoreshow();
@@ -232,7 +417,7 @@ void main()
 			}
 			c[v]=1;
             Eadd(v);
-			//printf("\nÔö¼ÓµÄÊÇµÚ%d¸ö¶¥µã\n",v);
+			//printf("\nå¢åŠ çš„æ˜¯ç¬¬%dä¸ªé¡¶ç‚¹\n",v);
 			newscore(v);
 			WCC_Rule3(v);
 			age[v]=0;
@@ -270,7 +455,7 @@ void main()
 	}
 	end = clock();
 
-	printf("µü´ú´ÎÊı%d\n",iter);
+	printf("è¿­ä»£æ¬¡æ•°%d\n",iter);
 	printf("UBbest = %d\n",UBbest);
 	printf("time = %ld\n",end - start);
 	//eshow();
@@ -283,110 +468,13 @@ void main()
 			printf("%d\t",w[i]);
 		}
 	}
-	printf("\nCÄÚ¶¥µãÊı£º%d",vnum);
+	printf("\nCå†…é¡¶ç‚¹æ•°ï¼š%d",vnum);
 
 	//getchar();
 
 }
 
-int removev()
-{
-	int i;
-	int max;
-	for(i=0;i<N;i++)
-    {
-        if(c[i]==1)
-        {
-            max=i;
-            break;
-        }
 
-    }
-	for(i=max;i<N;i++)
-	{
-		if(c[i]==1)
-		{
-			if(score[i]>score[max])
-			{
-				max=i;
-			}
-			else if(score[i]==score[max]&&age[i]>=age[max])
-			{
-				max=i;
-			}
-		}
-	}
-	return max;
-}
-int removetabu()
-{
-	int i;
-	int max;
-	for(i=0;i<N;i++)
-	{
-		if(c[i]==1)
-		{
-			if(tabu[i]==0)
-			{
-				max=i;
-				break;
-			}
-		}
-	}
-	for(i=max;i<N;i++)
-	{
-		if(c[i]==1)
-		{
-
-            if(tabu[i]==0)
-            {
-                if(score[i]>score[max])
-                {
-                    max=i;
-                }
-                if(score[i]==score[max]&&age[i]>=age[max])
-                {
-                    max=i;
-                }
-            }
-		}
-	}
-	return max;
-}
-int add()
-{
-	int i;
-	int max;
-	for(i=0;i<N;i++)
-	{
-		if(c[i]==0)
-		{
-            if(wconfig[i]==1)
-            {
-                max=i;
-                break;
-            }
-		}
-	}
-	for(i=max;i<N;i++)
-	{
-		if(c[i]==0)
-		{
-		if(wconfig[i]==1)
-		{
-			if(score[i]>score[max])
-			{
-				max=i;
-			}
-			if(score[i]==score[max]&&age[i]>=age[max])
-			{
-				max=i;
-			}
-		}
-		}
-	}
-	return max;
-}
 
 
 int getline(char *str, FILE *fp, int n)
@@ -404,191 +492,5 @@ int getline(char *str, FILE *fp, int n)
         return 0;
     else
         return 1;
-}
-
-int init()
-{
-    FILE * fp;
-    int i,j,n = 0,k = 0;
-    char str[5000] = {'0'};
-    char tmp[10];
-
-    for (i = 0; i < N; i++)
-    {
-        wconfig[i] = 1;
-        c[i] = 0;
-    }
-
-    fp = fopen("E:\\CPP\\dingdian\\MVVC\\vc_100_100_01.txt","r");
-
-    if ( fp == NULL)
-    {
-        printf("The file can not be opened in init().\n");
-        return 0;
-    }
-
-    for (n = 0; !feof(fp); n++)
-    {
-        if ( !getline(str,fp,5000))
-        {
-            printf("The array str is too small at init().\n");
-            return 0;
-        }
-
-        if ( n == 1)
-        {
-            for (i = 0,k = 0; str[i] != '\n';k++ )
-            {
-                for (j = 0; j < 5 && str[i] != '\n';)
-                    tmp[j++] = str[i++];
-                tmp[j] = '\n';
-                w[k] = atoi(tmp);
-            }
-
-        }
-
-        if ( n > 1)
-        {
-            for (i = 1, k = 0; (str[i] != '\n') && (k < N); i++,k++)
-            {
-
-                for (j = 0; (str[i] != ' ') && (str[i] != '\n'); i++)
-                {
-                    tmp[j++]  = str[i];
-                }
-                tmp[j] = '\n';
-                e[n-2][k] = atoi(tmp);
-
-                if (e[n-2][k] == 1) score[n-2]++;
-            }
-        }
-    }
-    greedy();
-    for (i = 0; i < N; i++)
-    {
-        printf(" %d",c[i]);
-    }
-    return 1;
-}
-
-void greedy()
-{
-	float tmp[N];
-	int i;
-	int k;
-	int flag;
-	float max;
-
-	for (i = 0; i < N; i++)
-		tmp[i] = score[i]*1.0/w[i];
-
-	for (k = 0; k < N; k++)
-	{
-
-		for (i = 0,max = tmp[i],flag = 0; i < N; i++)
-		{
-
-			if (tmp[i] > max)
-			{
-				max = tmp[i];
-				flag = i;
-			}
-
-		}
-
-		tmp[flag] = 0;
-		c[flag] = 1;
-		if (judge() == 1) break;
-	}
-
-}
-
-void wshow()
-{
-    int i;
-    printf("È¨ÖØ£º\n");
-    for (i = 0; i < N; i++)
-    {
-        printf(" %d",w[i]);
-    }
-    printf("\n");
-    printf("\n");
-}
-
-void cshow()
-{
-	int i;
-	printf("½á¹û£º\n");
-	for (i = 0; i < N; i++)
-	{
-		printf(" %d", c[i]);
-	}
-	printf("\n");
-	printf("\n");
-}
-
-void eshow()
-{
-    int i,j;
-    printf("¶¯Ì¬±ß£º\n");
-    for (i = 0; i < N; i++)
-    {
-        for (j = 0; j < N; j++)
-            printf(" %d",e[i][j]);
-        printf("\n");
-    }
-    printf("\n");
-}
-
-void scoreshow()
-{
-    int i;
-    printf("·ÖÊı£º\n");
-    for (i = 0; i < N; i++)
-    {
-        printf(" %d", score[i]);
-    }
-    printf("\n");
-    printf("\n");
-}
-
-void wconfigshow()
-{
-    int i;
-    printf("¸ñ¾Ö£º\n");
-    for (i = 0; i < N; i++)
-    {
-        printf(" %d", wconfig[i]);
-    }
-    printf("\n");
-    printf("\n");
-
-}
-
-void WCC_Rule2(int vi)
-{
-    int i;
-    wconfig[vi] = 0;
-    for (i = 0; i < N; i++)
-    {
-        if (e[vi][i] > 0)
-            wconfig[i] = 1;
-    }
-}
-
-void WCC_Rule3(int vi)
-{
-    int i;
-    for (i = 0; i < N; i++)
-    {
-        if (e[vi][i] > 0)
-            wconfig[i] = 1;
-    }
-}
-
-void WCC_Rule4(int vi,int ui)
-{
-    wconfig[vi] = 1;
-    wconfig[ui] = 1;
 }
 
